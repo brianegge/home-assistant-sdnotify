@@ -1,6 +1,8 @@
 {
   "domain": "sdnotify",
   "name": "sdnotify",
+  "documentation": "https://github.com/brianegge/home-assistant-sdnotify/blob/master/README.md",
+  "issue_tracker": "https://github.com/brianegge/home-assistant-sdnotify/issues",
   "iot_class": "local_polling",
   "dependencies": [],
   "version": "0.0.1",
