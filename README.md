@@ -1,4 +1,4 @@
-## Tenda AC23 Router Device Tracker
+## systemd notifier
 
 Adds device to integrate with systemd service, notifying both watchdog and startup. My home assistant installation froze more than one time, so I added the watchdog to kick the service if it does.
 
