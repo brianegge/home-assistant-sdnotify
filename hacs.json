@@ -1,0 +1,5 @@
+{
+  "name": "systemd notifier",
+  "domains": [ "binary_sensor" ],
+  "render_readme": true
+}
