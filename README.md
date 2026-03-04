@@ -1,40 +1,37 @@
-## systemd notifier
+# systemd Notify for Home Assistant
 
-Adds device to integrate with systemd service, notifying both watchdog and startup. My home assistant installation froze more than one time, so I added the watchdog to kick the service if it does.
+A Home Assistant integration that sends systemd watchdog and ready notifications. If Home Assistant freezes, systemd's watchdog will automatically restart the service.
 
-## Setup Process
+## Installation
 
-1. Install using [HACS](https://github.com/hacs/integration) or manually copy the files
-2. Add sdnotify to your configuration.yaml
-3. Update systemd config
-4. Restart Home Assistant
+### HACS (Recommended)
 
-## Step 1: Installation
+1. Open [HACS](https://hacs.xyz/) in Home Assistant
+2. Go to **Integrations** and click the three-dot menu
+3. Select **Custom repositories** and add:
+   - Repository: `brianegge/home-assistant-sdnotify`
+   - Category: Integration
+4. Click **Download** on the sdnotify card
+5. Restart Home Assistant
 
-### Installation with Home Assistant Community Store (HACS)
+### Manual
 
-For easy updates whenever a new version is released, use the [Home Assistant Community Store (HACS)](https://github.com/hacs/integration) and add the following Integration in the Settings tab:
+1. Copy `custom_components/sdnotify/` to your `config/custom_components/sdnotify/` directory
+2. Restart Home Assistant
 
-```
-brianegge/home-assistant-sdnotify
-```
+## Configuration
 
-## Step 2: Add sensor to Home Assistant's Configuration
+1. Go to **Settings** > **Devices & Services** > **Add Integration**
+2. Search for **systemd Notify** and click it
+3. Click **Submit** to confirm
 
-Now that that installation and authentication are done, all that is left is to add the binary sensor to your `configuration.yaml`.
+No YAML configuration is needed.
 
-The minimum required configuration:
+## systemd Setup
 
-```yaml
-binary_sensor:
-    - platform: sdnotify
-```
+Your systemd unit file (e.g., `/etc/systemd/system/homeassistant.service`) should include watchdog settings:
 
-## Step 3: Update systemd config
-
-Your systemd config should already exist in a file like `/etc/systemd/system/homeassistant.service`. Add Type,WATCHDOG_USEC,WatchdogSec,Restart=, and RestartSec to your config.
-
-```
+```ini
 [Unit]
 Description=Home Assistant
 After=network-online.target
@@ -53,18 +50,29 @@ RestartSec=10
 WantedBy=multi-user.target
 ```
 
-Lastly, reload systemd
-```
+Then reload systemd:
+
+```sh
 sudo systemctl daemon-reload
-```
-
-## Step 4: Restart and Test
-
-```
 sudo systemctl restart homeassistant.service
 ```
 
+## How It Works
 
-### Credit
+The integration creates a binary sensor that:
+- Sends `READY=1` to systemd when Home Assistant has started
+- Periodically sends `WATCHDOG=1` pings (interval based on `WATCHDOG_USEC` env var, default 5 seconds)
+- Shows as a **problem** sensor until the ready notification is sent
 
-Originally copied from https://gist.github.com/yottatsa/2395de4ea665fecabf1dfb63796a546b
+If `WATCHDOG_USEC` is not set (i.e., not running under systemd), the sensor will not poll.
+
+## Removal
+
+1. Go to **Settings** > **Devices & Services**
+2. Find **systemd Notify** and click the three-dot menu
+3. Select **Delete**
+4. Optionally uninstall via HACS
+
+## Credit
+
+Originally based on https://gist.github.com/yottatsa/2395de4ea665fecabf1dfb63796a546b

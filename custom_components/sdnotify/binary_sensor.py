@@ -1,77 +1,86 @@
-import os
+"""Binary sensor platform for sdnotify."""
+
 import logging
+import os
 from datetime import timedelta
 
-from homeassistant.components.binary_sensor import BinarySensorEntity
-from homeassistant.util import Throttle
-import homeassistant.util.dt as dt_util
+import sdnotify
 
-REQUIREMENTS = ["sdnotify"]
+from homeassistant.components.binary_sensor import (
+    BinarySensorDeviceClass,
+    BinarySensorEntity,
+)
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-__version__ = "0.1"
+from homeassistant.config_entries import ConfigEntry
+from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
 
-def get_scan_interval():
+def _get_scan_interval() -> int:
+    """Get scan interval from WATCHDOG_USEC env var."""
     watchdog_usec = os.environ.get("WATCHDOG_USEC")
     if watchdog_usec is not None:
         _LOGGER.debug("WATCHDOG_USEC=%s", watchdog_usec)
-        watchdog_sec = int(watchdog_usec) / 1000 / 1000
-        return watchdog_sec
+        return int(watchdog_usec) // 1_000_000
+    return 5
 
 
-DOMAIN = "sdnotify"
-SCAN_INTERVAL = timedelta(seconds=get_scan_interval() or 5)
+SCAN_INTERVAL = timedelta(seconds=_get_scan_interval())
 
 
-async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
-    """Initialise SDNotifier."""
-    async_add_entities([Notifier(hass)], True)
+async def async_setup_entry(
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+    async_add_entities: AddEntitiesCallback,
+) -> None:
+    """Set up sdnotify binary sensor from a config entry."""
+    notifier = await hass.async_add_executor_job(sdnotify.SystemdNotifier)
+    async_add_entities([SdnotifyBinarySensor(entry, notifier)])
 
 
-class Notifier(BinarySensorEntity):
-    def __init__(self, hass):
-        import sdnotify
+class SdnotifyBinarySensor(BinarySensorEntity):
+    """Binary sensor that sends systemd watchdog notifications."""
 
-        self.notifier = sdnotify.SystemdNotifier()
-        self.ready = False
-        self.attributes = {}
+    _attr_has_entity_name = True
+    _attr_name = None
+    _attr_device_class = BinarySensorDeviceClass.PROBLEM
 
-    def _notify(self, message):
-        self.notifier.notify(message)
-        _LOGGER.debug("sdnotify: %s", message)
-
-    @property
-    def should_poll(self):
-        """Determine if polling needed."""
-        return self.notifier.socket is not None
-
-    @property
-    def name(self):
-        """Return the name of the sensor."""
-        return "systemd Service"
-
-    @Throttle(SCAN_INTERVAL)
-    async def async_update(self):
-        if self.notifier.socket is not None:
-            self.attributes["last_updated"] = str(dt_util.now())
-            if not self.ready:
-                self._notify("READY=1")
-                self.ready = True
-            self._notify("WATCHDOG=1")
+    def __init__(
+        self,
+        entry: ConfigEntry,
+        notifier: sdnotify.SystemdNotifier,
+    ) -> None:
+        """Initialize the sensor."""
+        self._notifier = notifier
+        self._ready = False
+        self._attr_unique_id = entry.entry_id
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, entry.entry_id)},
+        )
 
     @property
-    def is_on(self):
-        """Return the state of the sensor."""
-        return not self.ready
+    def should_poll(self) -> bool:
+        """Poll only when systemd socket is available."""
+        return self._notifier.socket is not None
 
     @property
-    def device_class(self):
-        """Return the class of this device."""
-        return "problem"
+    def is_on(self) -> bool:
+        """Return true if not yet ready (problem state)."""
+        return not self._ready
 
-    @property
-    def extra_state_attributes(self):
-        """Attributes."""
-        return self.attributes
+    async def async_update(self) -> None:
+        """Send watchdog ping to systemd."""
+        if self._notifier.socket is None:
+            return
+        if not self._ready:
+            await self.hass.async_add_executor_job(
+                self._notifier.notify, "READY=1"
+            )
+            self._ready = True
+        await self.hass.async_add_executor_job(
+            self._notifier.notify, "WATCHDOG=1"
+        )
