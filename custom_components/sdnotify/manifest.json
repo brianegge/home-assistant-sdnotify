@@ -1,15 +1,15 @@
 {
   "domain": "sdnotify",
   "name": "systemd Notify",
-  "documentation": "https://github.com/brianegge/home-assistant-sdnotify/blob/master/README.md",
-  "issue_tracker": "https://github.com/brianegge/home-assistant-sdnotify/issues",
-  "iot_class": "local_polling",
-  "dependencies": [],
-  "version": "1.0.0",
-  "config_flow": true,
-  "single_config_entry": true,
   "codeowners": [
     "@brianegge"
   ],
-  "requirements": ["sdnotify"]
+  "config_flow": true,
+  "dependencies": [],
+  "documentation": "https://github.com/brianegge/home-assistant-sdnotify/blob/master/README.md",
+  "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/brianegge/home-assistant-sdnotify/issues",
+  "requirements": ["sdnotify"],
+  "single_config_entry": true,
+  "version": "1.0.0"
 }
