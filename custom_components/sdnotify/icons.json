@@ -1,0 +1,9 @@
+{
+  "entity": {
+    "binary_sensor": {
+      "_": {
+        "default": "mdi:heart-pulse"
+      }
+    }
+  }
+}
