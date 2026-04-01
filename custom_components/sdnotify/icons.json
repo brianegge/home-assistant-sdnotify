@@ -1,7 +1,7 @@
 {
   "entity": {
     "binary_sensor": {
-      "_": {
+      "watchdog": {
         "default": "mdi:heart-pulse"
       }
     }
