@@ -1,0 +1,27 @@
+name: Dependabot Auto-merge
+
+on:
+  schedule:
+    - cron: "0 12 * * 6"  # Every Saturday at noon UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  automerge:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Auto-merge Dependabot PRs
+        run: |
+          gh pr list --author "app/dependabot" --state open --json number,title --jq '.[] | .number' | while read pr; do
+            echo "Approving and merging PR #$pr"
+            gh pr review "$pr" --approve || true
+            gh pr merge "$pr" --squash --auto || true
+          done
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
