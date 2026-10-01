@@ -1,5 +1,11 @@
 # systemd Notify for Home Assistant
 
+> [!NOTE]
+> **This repository is archived and no longer maintained.** It still works as-is
+> and stays available for anyone running Home Assistant under systemd, but it
+> won't receive updates or fixes for future Home Assistant releases. Fork it if
+> you need changes.
+
 A Home Assistant integration that sends systemd watchdog and ready notifications. If Home Assistant freezes, systemd's watchdog will automatically restart the service.
 
 ## Installation
